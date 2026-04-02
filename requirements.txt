@@ -1,0 +1,15 @@
+streamlit
+pandas
+numpy
+plotly
+scikit-learn
+joblib
+reportlab
+bcrypt
+Pillow
+deepface
+tf-keras
+opencv-python-headless
+openpyxl
+uvicorn
+fastapi

@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.DS_Store
+*.log
+.idea/
+.streamlit/secrets.toml
+adhd_platform.db
+*.db
+modules/__pycache__/
+api/__pycache__/

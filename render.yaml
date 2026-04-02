@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: adhd-platform
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: DB_PATH
+        value: /app/data/adhd_platform.db
+    disk:
+      name: adhd-db
+      mountPath: /app/data
+      sizeGB: 1
