@@ -368,10 +368,13 @@ if role == "patient":
         st.markdown("### Navigation")
         pat_pages = [
             "🏠 My Dashboard",
+            "📋 Self-Assessment",
+            "📄 My Report",
             "📅 Book Appointment",
             "⭐ Reviews",
         ]
-        page = st.radio("Go to", pat_pages, label_visibility="collapsed")
+        page = st.radio("Go to", pat_pages, label_visibility="collapsed",
+                        key="patient_page")
         st.markdown("---")
         if st.button("Logout", use_container_width=True):
             st.session_state.user = None
@@ -381,6 +384,12 @@ if role == "patient":
     if "Dashboard" in page:
         from modules.patient_dashboard import render_patient_dashboard
         render_patient_dashboard()
+    elif "Self-Assessment" in page:
+        from modules.patient_assessment import render_patient_assessment
+        render_patient_assessment()
+    elif "My Report" in page:
+        from modules.patient_report import render_patient_report
+        render_patient_report()
     elif "Appointment" in page:
         from modules.appointments import render_appointments
         render_appointments()
