@@ -11,10 +11,14 @@ def render_home():
 
     # ── KPI Metrics ───────────────────────────────────────────────────────────
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Patients",       stats["total_patients"])
-    c2.metric("Assessments Done",     stats["total_assessments"])
-    c3.metric("EEG Sessions",         stats["total_eeg"])
-    c4.metric("Reports Generated",    0)   # placeholder
+    from database import get_conn
+    with get_conn() as _c:
+        total_reports = _c.execute("SELECT COUNT(*) FROM assessment_reports").fetchone()[0]
+
+    c1.metric("Total Patients",    stats["total_patients"])
+    c2.metric("Assessments Done",  stats["total_assessments"])
+    c3.metric("EEG Sessions",      stats["total_eeg"])
+    c4.metric("Reports Generated", total_reports)
 
     st.markdown("<br>", unsafe_allow_html=True)
 

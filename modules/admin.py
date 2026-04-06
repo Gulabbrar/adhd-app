@@ -108,16 +108,18 @@ def render_admin():
                 urole = c3.selectbox("Role", ["clinician","admin"])
                 if st.form_submit_button("Add User"):
                     if uname and upwd:
-                        try:
-                            with get_conn() as conn:
-                                conn.execute(
-                                    "INSERT INTO users (username,password,role) VALUES (?,?,?)",
-                                    (uname, upwd, urole)
-                                )
+                        from database import register_user
+                        result = register_user(
+                            username=uname.strip(),
+                            email="",
+                            password=upwd,
+                            role=urole,
+                        )
+                        if result["ok"]:
                             st.success(f"User '{uname}' created.")
                             st.rerun()
-                        except Exception as e:
-                            st.error(f"Error: {e}")
+                        else:
+                            st.error(result["error"])
                     else:
                         st.warning("Username and password are required.")
 

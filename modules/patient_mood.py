@@ -103,20 +103,28 @@ def render_patient_mood():
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown(f"#### How are you feeling today, {patient['name'].split()[0]}?")
 
-            # Mood emoji picker
+            # Mood picker — radio so selection state is always visible
             st.markdown("**Select your mood:**")
-            mood_cols = st.columns(4)
-            if "selected_mood" not in st.session_state:
-                st.session_state.selected_mood = None
-
-            for idx, (label, (key, color, emoji)) in enumerate(MOODS.items()):
-                col = mood_cols[idx % 4]
-                selected = st.session_state.selected_mood == key
-                border   = f"3px solid {color}" if selected else "1px solid #e2e8f0"
-                bg       = f"{color}22" if selected else "white"
-                if col.button(label, key=f"mood_btn_{key}", use_container_width=True):
-                    st.session_state.selected_mood = key
-                    st.rerun()
+            mood_label_list = list(MOODS.keys())
+            chosen_label = st.radio(
+                "Mood",
+                mood_label_list,
+                index=0,
+                horizontal=True,
+                label_visibility="collapsed",
+                key="mood_radio_pick",
+            )
+            chosen_key = MOODS[chosen_label][0]
+            chosen_color = MOODS[chosen_label][1]
+            chosen_emoji = MOODS[chosen_label][2]
+            # Show a colour-coded confirmation strip
+            st.markdown(f"""
+            <div style="background:{chosen_color}18;border-left:4px solid {chosen_color};
+                        border-radius:6px;padding:6px 14px;margin:6px 0 12px;
+                        font-size:0.9rem;font-weight:600;color:{chosen_color};">
+                {chosen_emoji} {chosen_label.split(' ',1)[1].title()} selected
+            </div>
+            """, unsafe_allow_html=True)
 
             st.markdown("<br>", unsafe_allow_html=True)
 

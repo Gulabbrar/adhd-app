@@ -32,15 +32,14 @@ def render_history():
         if pid:
             rows = get_eeg_signals(pid, limit=500)
         else:
-            # Load recent signals from all patients
-            sessions = get_all_eeg_sessions()
-            rows = []
-            for s in sessions[:5]:
-                # Fetch patient id from patients list
-                patient_match = [p for p in patients if p["name"] == s["patient_name"]]
-                if patient_match:
-                    rows += get_eeg_signals(patient_match[0]["id"],
-                                             s["session_id"], limit=50)
+            # Load recent signals across all patients — join by patient_id, not name
+            from database import get_conn
+            with get_conn() as conn:
+                raw = conn.execute("""
+                    SELECT e.* FROM eeg_signals e
+                    ORDER BY e.recorded_at DESC LIMIT 500
+                """).fetchall()
+            rows = [dict(r) for r in raw]
 
         if not rows:
             st.info("No EEG data found.")
