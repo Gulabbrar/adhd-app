@@ -370,6 +370,8 @@ if role == "patient":
             "🏠 My Dashboard",
             "📋 Self-Assessment",
             "📄 My Report",
+            "🎭 Mood Tracker",
+            "🎮 Activities",
             "📅 Book Appointment",
             "⭐ Reviews",
         ]
@@ -390,6 +392,12 @@ if role == "patient":
     elif "My Report" in page:
         from modules.patient_report import render_patient_report
         render_patient_report()
+    elif "Mood" in page:
+        from modules.patient_mood import render_patient_mood
+        render_patient_mood()
+    elif "Activities" in page:
+        from modules.patient_activities import render_patient_activities
+        render_patient_activities()
     elif "Appointment" in page:
         from modules.appointments import render_appointments
         render_appointments()

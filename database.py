@@ -165,6 +165,18 @@ def init_db():
             created_at  TEXT DEFAULT (datetime('now','localtime'))
         );
 
+        CREATE TABLE IF NOT EXISTS mood_logs (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id   INTEGER REFERENCES patients(id),
+            user_id      INTEGER REFERENCES users(id),
+            logged_at    TEXT DEFAULT (datetime('now','localtime')),
+            mood_score   INTEGER DEFAULT 5,
+            energy_level INTEGER DEFAULT 5,
+            sleep_hours  REAL    DEFAULT 7,
+            mood_label   TEXT    DEFAULT '',
+            notes        TEXT    DEFAULT ''
+        );
+
         CREATE INDEX IF NOT EXISTS idx_eeg_patient    ON eeg_signals(patient_id, session_id);
         CREATE INDEX IF NOT EXISTS idx_q_patient      ON questionnaire_results(patient_id);
         CREATE INDEX IF NOT EXISTS idx_emo_patient    ON emotion_logs(patient_id, session_id);
@@ -172,6 +184,7 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_rep_patient    ON assessment_reports(patient_id);
         CREATE INDEX IF NOT EXISTS idx_appt_patient   ON appointments(patient_id);
         CREATE INDEX IF NOT EXISTS idx_review_patient ON reviews(patient_id);
+        CREATE INDEX IF NOT EXISTS idx_mood_patient   ON mood_logs(patient_id);
         """)
 
         # Seed default staff accounts (plain text — legacy, still works via fallback auth)
@@ -186,6 +199,22 @@ def init_db():
 
         # Run migrations for any pre-existing DB
         _migrate(conn)
+
+        # Ensure mood_logs exists in older databases
+        conn.executescript("""
+        CREATE TABLE IF NOT EXISTS mood_logs (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id   INTEGER REFERENCES patients(id),
+            user_id      INTEGER REFERENCES users(id),
+            logged_at    TEXT DEFAULT (datetime('now','localtime')),
+            mood_score   INTEGER DEFAULT 5,
+            energy_level INTEGER DEFAULT 5,
+            sleep_hours  REAL    DEFAULT 7,
+            mood_label   TEXT    DEFAULT '',
+            notes        TEXT    DEFAULT ''
+        );
+        CREATE INDEX IF NOT EXISTS idx_mood_patient ON mood_logs(patient_id);
+        """)
 
 
 # ── Password helpers ──────────────────────────────────────────────────────────
@@ -362,6 +391,52 @@ def update_appointment_status(appt_id: int, status: str):
         conn.execute(
             "UPDATE appointments SET status=? WHERE id=?", (status, appt_id)
         )
+
+
+# ── Mood Logs ─────────────────────────────────────────────────────────────────
+def add_mood_log(patient_id: int, user_id: int, mood_score: int,
+                 energy_level: int, sleep_hours: float,
+                 mood_label: str = "", notes: str = "") -> int:
+    with get_conn() as conn:
+        cur = conn.execute(
+            "INSERT INTO mood_logs "
+            "(patient_id, user_id, mood_score, energy_level, sleep_hours, mood_label, notes) "
+            "VALUES (?,?,?,?,?,?,?)",
+            (patient_id, user_id, mood_score, energy_level, sleep_hours, mood_label, notes)
+        )
+        return cur.lastrowid
+
+
+def get_mood_logs(patient_id: int, limit: int = 90) -> list:
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM mood_logs WHERE patient_id=? "
+            "ORDER BY logged_at DESC LIMIT ?",
+            (patient_id, limit)
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_mood_streak(patient_id: int) -> int:
+    """Count consecutive days the patient logged their mood (ending today)."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT DATE(logged_at) as day FROM mood_logs "
+            "WHERE patient_id=? GROUP BY day ORDER BY day DESC",
+            (patient_id,)
+        ).fetchall()
+    if not rows:
+        return 0
+    from datetime import date, timedelta
+    today  = date.today()
+    streak = 0
+    for row in rows:
+        expected = today - timedelta(days=streak)
+        if str(row["day"]) == str(expected):
+            streak += 1
+        else:
+            break
+    return streak
 
 
 # ── Reviews ───────────────────────────────────────────────────────────────────
