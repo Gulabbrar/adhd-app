@@ -459,6 +459,7 @@ with st.sidebar:
         "📋 ADHD Questionnaire",
         "😊 Emotion Monitoring",
         "🎮 Activity Builder",
+        "🧠 EEG Assessment",
         "📈 Patient Progress",
         "🗂 Historical Data",
         "📄 ADHD Report",
@@ -488,6 +489,8 @@ elif "Emotion"       in page:
     from modules.emotion       import render_emotion;       render_emotion()
 elif "Activity"      in page:
     from modules.activity      import render_activity;      render_activity()
+elif "EEG"           in page:
+    from modules.eeg           import render_eeg;           render_eeg()
 elif "Progress"      in page:
     from modules.progress      import render_progress;      render_progress()
 elif "Historical"    in page:

@@ -6,7 +6,8 @@ from io import BytesIO
 from datetime import datetime
 
 from database import (get_patients, get_questionnaires, get_emotion_logs,
-                       get_activity_results, save_report, get_reports)
+                       get_activity_results, save_report, get_reports,
+                       get_eeg_signals, get_eeg_sessions)
 
 # ── NaN-safe helper ────────────────────────────────────────────────────────────
 import math
@@ -70,6 +71,75 @@ def _activity_risk_score(results: list):
     return score, (f"Average accuracy: {avg_acc:.0f}%, attention: {avg_att:.0f}%. "
                    + ("Performance within normal range." if avg_acc >= 75 else
                       "Cognitive performance below average — suggests attention difficulties."))
+
+
+def _eeg_risk_score(sessions: list, patient_id: int):
+    """
+    Compute EEG risk score (0–100) from all sessions.
+    Key indicators:
+      - Theta/Beta Ratio (TBR): primary ADHD biomarker. Clinical threshold ≥ 2.89.
+      - Attention score: low attention → higher risk.
+    Returns (score, interpretation_text, summary_dict)
+    """
+    if not sessions:
+        return 0.0, "No EEG data available.", {}
+
+    # Aggregate all signals across all sessions for this patient
+    all_signals = get_eeg_signals(patient_id, limit=1000)
+    if not all_signals:
+        return 0.0, "No EEG signal samples found.", {}
+
+    df = pd.DataFrame(all_signals)
+
+    avg_tbr  = _safe(df["theta_beta_ratio"].mean())
+    avg_att  = _safe(df["attention"].mean())
+    avg_med  = _safe(df["meditation"].mean())
+    avg_thet = _safe(df["theta"].mean())
+    avg_beta = _safe((df["low_beta"] + df["high_beta"]).mean())
+    avg_alph = _safe((df["low_alpha"] + df["high_alpha"]).mean())
+    n_sess   = len(sessions)
+    n_samp   = len(df)
+
+    # TBR-based risk: TBR 2.89 = threshold, maps linearly to 0–100 risk
+    # TBR 0   → 0% risk, TBR 2.89 → ~50%, TBR 5.78+ → 100%
+    tbr_risk = min(100.0, max(0.0, avg_tbr / 5.78 * 100.0))
+
+    # Attention-based risk: 100% attention → 0 risk, 0% attention → 100 risk
+    att_risk = max(0.0, 100.0 - avg_att)
+
+    # Combined EEG risk (TBR weighted more heavily as primary biomarker)
+    score = round(tbr_risk * 0.65 + att_risk * 0.35, 1)
+
+    # TBR interpretation
+    if avg_tbr < 1.5:
+        tbr_text = f"Normal (TBR {avg_tbr:.2f}) — within typical range."
+    elif avg_tbr < 2.5:
+        tbr_text = f"Slightly elevated TBR ({avg_tbr:.2f}) — mild inattention possible."
+    elif avg_tbr < 3.5:
+        tbr_text = f"High TBR ({avg_tbr:.2f}) — moderate ADHD tendency indicated."
+    else:
+        tbr_text = f"Very high TBR ({avg_tbr:.2f}) — strong ADHD biomarker (threshold ≥ 2.89)."
+
+    att_text = (
+        "Good sustained attention detected." if avg_att >= 65 else
+        "Moderate attention levels." if avg_att >= 40 else
+        "Low average attention — consistent with ADHD profile."
+    )
+
+    interpretation = (
+        f"EEG analysis across {n_sess} session(s), {n_samp} samples. "
+        f"Average Theta/Beta Ratio: {avg_tbr:.2f}. {tbr_text} "
+        f"Average Attention: {avg_att:.0f}%. {att_text} "
+        f"Average Meditation: {avg_med:.0f}%."
+    )
+
+    summary = {
+        "sessions": n_sess, "samples": n_samp,
+        "avg_tbr":  avg_tbr, "avg_attention": avg_att,
+        "avg_meditation": avg_med,
+        "avg_theta": avg_thet, "avg_beta": avg_beta, "avg_alpha": avg_alph,
+    }
+    return score, interpretation, summary
 
 
 def _final_classification(risk_score: float) -> tuple[str, str]:
@@ -164,12 +234,22 @@ def _pdf_report(patient: dict, report: dict) -> bytes:
     story.append(Spacer(1, 0.1*inch))
 
     # Score breakdown
-    score_data = [
-        ["Component",          "Score",  "Weight"],
-        ["Questionnaire",      f"{report.get('questionnaire_score',0):.1f}%","50%"],
-        ["Emotion Monitoring", f"{report.get('emotion_score',0):.1f}%",    "25%"],
-        ["Cognitive Activity", f"{report.get('activity_score',0):.1f}%",   "25%"],
-    ]
+    eeg_s = _safe(report.get("eeg_score", 0))
+    has_e = eeg_s > 0
+    score_data = [["Component", "Score", "Weight"]]
+    if has_e:
+        score_data += [
+            ["EEG Assessment",     f"{eeg_s:.1f}%",                              "30%"],
+            ["Questionnaire",      f"{report.get('questionnaire_score',0):.1f}%","35%"],
+            ["Emotion Monitoring", f"{report.get('emotion_score',0):.1f}%",      "20%"],
+            ["Cognitive Activity", f"{report.get('activity_score',0):.1f}%",     "15%"],
+        ]
+    else:
+        score_data += [
+            ["Questionnaire",      f"{report.get('questionnaire_score',0):.1f}%","50%"],
+            ["Emotion Monitoring", f"{report.get('emotion_score',0):.1f}%",      "25%"],
+            ["Cognitive Activity", f"{report.get('activity_score',0):.1f}%",     "25%"],
+        ]
     t2 = Table(score_data, colWidths=[2.5*inch, 1.5*inch, 1*inch])
     t2.setStyle(TableStyle([
         ("BACKGROUND", (0,0), (-1,0), rl_colors.HexColor("#1565c0")),
@@ -185,13 +265,17 @@ def _pdf_report(patient: dict, report: dict) -> bytes:
     story.append(Spacer(1, 0.15*inch))
 
     sections = [
+        ("EEG Analysis",                 "eeg_interpretation"),
         ("Questionnaire Analysis",       "questionnaire_summary"),
         ("Emotion Monitoring Analysis",  "emotion_summary"),
         ("Cognitive Activity Analysis",  "activity_summary"),
     ]
     for heading, key in sections:
+        text = report.get(key, "") or ""
+        if not text:
+            continue
         story.append(Paragraph(heading, head_style))
-        story.append(Paragraph(report.get(key, "No data."), body_style))
+        story.append(Paragraph(text, body_style))
         story.append(Spacer(1, 0.08*inch))
 
     doc.build(story)
@@ -221,37 +305,46 @@ def render_report():
         session_id = datetime.now().strftime("RPT_%Y%m%d_%H%M%S")
         st.info(f"Compiling data for **{patient['name']}**")
 
-        if st.button("Generate Report", use_container_width=True):
+        if st.button("Generate Collaborative Report", use_container_width=True):
             with st.spinner("Analysing all assessment data…"):
                 # Load all data
-                qs   = get_questionnaires(pid)
-                emos = get_emotion_logs(pid)
-                acts = get_activity_results(pid)
+                qs       = get_questionnaires(pid)
+                emos     = get_emotion_logs(pid)
+                acts     = get_activity_results(pid)
+                eeg_sess = get_eeg_sessions(pid)
 
                 # Compute component scores
-                q_score,   q_text   = _q_risk_score(qs)
-                emo_score, emo_text = _emotion_risk_score(emos)
-                act_score, act_text = _activity_risk_score(acts)
+                q_score,   q_text            = _q_risk_score(qs)
+                emo_score, emo_text          = _emotion_risk_score(emos)
+                act_score, act_text          = _activity_risk_score(acts)
+                eeg_score, eeg_text, eeg_sum = _eeg_risk_score(eeg_sess, pid)
 
-                # Sanitise all scores before use (guard against any NaN)
                 q_score   = _safe(q_score)
                 emo_score = _safe(emo_score)
                 act_score = _safe(act_score)
+                eeg_score = _safe(eeg_score)
 
-                # Weighted final risk score (Questionnaire 50%, Emotion 25%, Activity 25%)
-                weights    = [0.50, 0.25, 0.25]
-                scores_raw = [q_score, emo_score, act_score]
+                has_eeg = eeg_score > 0
+
+                # Weights: EEG 30%, Questionnaire 35%, Emotion 20%, Activity 15%
+                # If no EEG data redistribute weight to questionnaire
+                if has_eeg:
+                    weights    = [0.30, 0.35, 0.20, 0.15]
+                    scores_raw = [eeg_score, q_score, emo_score, act_score]
+                else:
+                    weights    = [0.50, 0.25, 0.25]
+                    scores_raw = [q_score, emo_score, act_score]
+
                 risk_score = round(sum(w * s for w, s in zip(weights, scores_raw)), 1)
-
                 classification, cls_color = _final_classification(risk_score)
 
-            # Save to DB (eeg fields stored as 0 since not used)
+            # Save to DB
             save_report(pid, session_id,
-                        "", q_text, emo_text, act_text,
+                        eeg_text, q_text, emo_text, act_text,
                         classification, risk_score,
-                        0.0, q_score, emo_score, act_score)
+                        eeg_score, q_score, emo_score, act_score)
 
-            # ── Display ─────────────────────────────────────────────────────
+            # ── Classification banner ────────────────────────────────────────
             st.markdown(f"""
             <div style="background:{cls_color}18;border:3px solid {cls_color};
                         border-radius:16px;padding:24px;text-align:center;margin:16px 0;">
@@ -262,19 +355,75 @@ def render_report():
                     Overall Risk Score: <b>{risk_score:.1f}%</b>
                 </div>
                 <div style="font-size:0.85rem;color:#666;margin-top:4px;">
-                    Patient: {patient['name']} &nbsp;|&nbsp; Session: {session_id}
+                    Patient: {patient['name']} &nbsp;|&nbsp; Session: {session_id}<br>
+                    Weights: {"EEG 30% · " if has_eeg else ""}
+                    Questionnaire {"35" if has_eeg else "50"}% ·
+                    Emotion {"20" if has_eeg else "25"}% ·
+                    Activity {"15" if has_eeg else "25"}%
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-            # Score gauges
-            g1, g2, g3 = st.columns(3)
-            g1.plotly_chart(_build_gauge(q_score,   "Questionnaire","#c62828"),
-                            use_container_width=True, key="rpt_g1")
-            g2.plotly_chart(_build_gauge(emo_score, "Emotion",      "#f57f17"),
-                            use_container_width=True, key="rpt_g2")
-            g3.plotly_chart(_build_gauge(act_score, "Activity",     "#2e7d32"),
-                            use_container_width=True, key="rpt_g3")
+            # ── Score gauges ─────────────────────────────────────────────────
+            if has_eeg:
+                g1, g2, g3, g4 = st.columns(4)
+                g1.plotly_chart(_build_gauge(eeg_score,  "EEG",          "#7b1fa2"),
+                                use_container_width=True, key="rpt_g0")
+                g2.plotly_chart(_build_gauge(q_score,    "Questionnaire","#c62828"),
+                                use_container_width=True, key="rpt_g1")
+                g3.plotly_chart(_build_gauge(emo_score,  "Emotion",      "#f57f17"),
+                                use_container_width=True, key="rpt_g2")
+                g4.plotly_chart(_build_gauge(act_score,  "Activity",     "#2e7d32"),
+                                use_container_width=True, key="rpt_g3")
+            else:
+                g1, g2, g3 = st.columns(3)
+                g1.plotly_chart(_build_gauge(q_score,   "Questionnaire","#c62828"),
+                                use_container_width=True, key="rpt_g1")
+                g2.plotly_chart(_build_gauge(emo_score, "Emotion",      "#f57f17"),
+                                use_container_width=True, key="rpt_g2")
+                g3.plotly_chart(_build_gauge(act_score, "Activity",     "#2e7d32"),
+                                use_container_width=True, key="rpt_g3")
+
+            # ── EEG detail card ───────────────────────────────────────────────
+            if has_eeg:
+                tbr_c = ("#c62828" if eeg_sum["avg_tbr"] >= 3.5 else
+                          "#e65100" if eeg_sum["avg_tbr"] >= 2.5 else
+                          "#f57f17" if eeg_sum["avg_tbr"] >= 1.5 else "#2e7d32")
+                st.markdown(f"""
+                <div class="card" style="margin-bottom:8px;border-left:4px solid #7b1fa2;">
+                    <b>🧠 EEG Analysis</b>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;">
+                        <div style="flex:1;min-width:120px;text-align:center;">
+                            <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;">Sessions</div>
+                            <div style="font-size:1.4rem;font-weight:700;color:#0d47a1;">{eeg_sum['sessions']}</div>
+                        </div>
+                        <div style="flex:1;min-width:120px;text-align:center;">
+                            <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;">Avg Attention</div>
+                            <div style="font-size:1.4rem;font-weight:700;color:#0d47a1;">{eeg_sum['avg_attention']:.0f}%</div>
+                        </div>
+                        <div style="flex:1;min-width:120px;text-align:center;">
+                            <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;">Avg TBR</div>
+                            <div style="font-size:1.4rem;font-weight:700;color:{tbr_c};">{eeg_sum['avg_tbr']:.2f}</div>
+                        </div>
+                        <div style="flex:1;min-width:120px;text-align:center;">
+                            <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;">Avg Meditation</div>
+                            <div style="font-size:1.4rem;font-weight:700;color:#0d47a1;">{eeg_sum['avg_meditation']:.0f}%</div>
+                        </div>
+                        <div style="flex:1;min-width:120px;text-align:center;">
+                            <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;">Avg Theta</div>
+                            <div style="font-size:1.4rem;font-weight:700;color:#0d47a1;">{eeg_sum['avg_theta']:,.0f}</div>
+                        </div>
+                        <div style="flex:1;min-width:120px;text-align:center;">
+                            <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;">Avg Beta</div>
+                            <div style="font-size:1.4rem;font-weight:700;color:#0d47a1;">{eeg_sum['avg_beta']:,.0f}</div>
+                        </div>
+                    </div>
+                    <div style="margin-top:10px;color:#374151;font-size:0.88rem;">{eeg_text}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.info("No EEG data for this patient. Enter EEG readings via the "
+                        "**EEG Assessment → Manual Entry** tab to include them in future reports.")
 
             # Interpretation cards
             sections = [
