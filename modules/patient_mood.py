@@ -64,8 +64,8 @@ def render_patient_mood():
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    tab_checkin, tab_history, tab_insights = st.tabs([
-        "✏️ Daily Check-in", "📅 History", "💡 Insights"
+    tab_checkin, tab_face, tab_history, tab_insights = st.tabs([
+        "✏️ Daily Check-in", "📸 Facial Analysis", "📅 History", "💡 Insights"
     ])
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -169,7 +169,137 @@ def render_patient_mood():
             st.markdown('</div>', unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # TAB 2 — History
+    # TAB 2 — Facial Analysis (DeepFace)
+    # ══════════════════════════════════════════════════════════════════════════
+    with tab_face:
+        st.markdown("""
+        <div class="card">
+            <b>📸 Facial Emotion Detection</b><br>
+            <small style="color:#64748b;">
+                Take a photo and the AI will detect your facial emotion using DeepFace.
+                The result is saved to your mood log automatically.
+            </small>
+        </div>
+        """, unsafe_allow_html=True)
+
+        EMOTION_COLORS = {
+            "happy":    "#2e7d32", "neutral": "#1565c0", "sad":     "#4527a0",
+            "angry":    "#c62828", "fear":    "#e65100", "surprise":"#f57f17",
+            "disgust":  "#6a1b9a",
+        }
+        EMOTION_EMOJI = {
+            "happy": "😄", "neutral": "😐", "sad": "😢",
+            "angry": "😠", "fear":    "😨", "surprise": "😲", "disgust": "🤢",
+        }
+        ADHD_NOTES = {
+            "happy":    "Positive engagement — low stress indicator.",
+            "neutral":  "Neutral/baseline emotional state.",
+            "sad":      "Low affect — may reflect frustration or disengagement.",
+            "angry":    "Frustration/irritability — common under cognitive load.",
+            "fear":     "Anxiety detected — high stress state.",
+            "surprise": "Heightened alertness or distraction.",
+            "disgust":  "Task/situation aversion detected.",
+        }
+
+        col_cam, col_result = st.columns([1, 1])
+
+        with col_cam:
+            img_data = st.camera_input("Take a photo",
+                                        label_visibility="collapsed")
+            if img_data:
+                if st.button("Analyse Emotion", use_container_width=True,
+                              key="face_analyse_btn"):
+                    with st.spinner("Detecting facial emotion…"):
+                        try:
+                            from deepface import DeepFace
+                            import numpy as np
+                            from PIL import Image
+                            import io
+
+                            img  = Image.open(io.BytesIO(img_data.getvalue())).convert("RGB")
+                            arr  = np.array(img)
+                            res  = DeepFace.analyze(arr, actions=["emotion"],
+                                                     enforce_detection=False, silent=True)
+                            if isinstance(res, list):
+                                res = res[0]
+                            emotions  = res.get("emotion", {})
+                            dominant  = res.get("dominant_emotion", "neutral")
+                            total_e   = sum(emotions.values()) or 1
+                            norm      = {k: round(v / total_e, 4) for k, v in emotions.items()}
+                            st.session_state["face_result"] = {
+                                "dominant": dominant, "scores": norm
+                            }
+                            # Auto-save to mood_logs
+                            # Map DeepFace emotion → mood_label used in mood_logs
+                            emo_to_mood = {
+                                "happy": "happy", "neutral": "calm", "sad": "sad",
+                                "angry": "irritable", "fear": "anxious",
+                                "surprise": "happy", "disgust": "overwhelmed",
+                            }
+                            mood_lbl = emo_to_mood.get(dominant, "calm")
+                            add_mood_log(
+                                patient_id=pid,
+                                user_id=user["id"],
+                                mood_score={"happy":9,"neutral":6,"sad":3,
+                                            "angry":3,"fear":3,"surprise":7,
+                                            "disgust":2}.get(dominant, 5),
+                                energy_level=5,
+                                sleep_hours=7.0,
+                                mood_label=mood_lbl,
+                                notes=f"[DeepFace] dominant emotion: {dominant}",
+                            )
+                            st.success(f"Emotion detected and saved to mood log!")
+                        except ImportError:
+                            st.error("DeepFace not installed. "
+                                     "Run: `pip install deepface tf-keras`")
+                        except Exception as e:
+                            st.warning(f"Detection failed: {e}")
+
+        with col_result:
+            result = st.session_state.get("face_result")
+            if result:
+                dom   = result["dominant"]
+                color = EMOTION_COLORS.get(dom, "#1565c0")
+                emoji = EMOTION_EMOJI.get(dom, "😐")
+                note  = ADHD_NOTES.get(dom, "")
+
+                st.markdown(f"""
+                <div style="background:{color}18;border:2px solid {color};
+                            border-radius:12px;padding:20px;text-align:center;">
+                    <div style="font-size:3rem;">{emoji}</div>
+                    <div style="font-size:1.6rem;font-weight:800;color:{color};margin-top:6px;">
+                        {dom.capitalize()}
+                    </div>
+                    <div style="font-size:0.85rem;color:#555;margin-top:6px;">{note}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                scores = result["scores"]
+                fig = go.Figure(go.Bar(
+                    x=list(scores.keys()),
+                    y=[v * 100 for v in scores.values()],
+                    marker_color=[EMOTION_COLORS.get(k,"#1565c0") for k in scores],
+                    text=[f"{v*100:.1f}%" for v in scores.values()],
+                    textposition="outside",
+                ))
+                fig.update_layout(
+                    yaxis=dict(range=[0, 110], title="%"),
+                    paper_bgcolor="white", plot_bgcolor="#f8fafc",
+                    height=260, font=dict(family="Inter", size=11),
+                    margin=dict(t=10, b=20, l=40, r=10),
+                )
+                st.plotly_chart(fig, use_container_width=True, key="face_bar")
+            else:
+                st.markdown("""
+                <div style="text-align:center;padding:40px;color:#94a3b8;">
+                    <div style="font-size:3rem;">📷</div>
+                    <p>Take a photo and click <b>Analyse Emotion</b><br>
+                    to see your facial emotion breakdown here.</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # TAB 3 — History
     # ══════════════════════════════════════════════════════════════════════════
     with tab_history:
         if not logs:
@@ -246,7 +376,7 @@ def render_patient_mood():
                          use_container_width=True, hide_index=True)
 
     # ══════════════════════════════════════════════════════════════════════════
-    # TAB 3 — Insights
+    # TAB 4 — Insights
     # ══════════════════════════════════════════════════════════════════════════
     with tab_insights:
         if len(logs) < 3:

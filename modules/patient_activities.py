@@ -253,13 +253,17 @@ def _pattern_game(pid: int, session_id: str):
             st.success(f"✅ Correct! ({state['rt']}ms)")
         else:
             st.error(f"❌ Incorrect. Target was: {'  '.join(state['target'])}")
-        state["round"] += 1
-        if state["round"] < ROUNDS:
-            t, o = _new_round()
-            state.update({"target": t, "options": o, "start_ts": time.time()})
+        # NOTE: do NOT mutate state here — this block re-runs on every Streamlit
+        # refresh (hover, scroll, etc.). All mutations go inside the button handler.
         if st.button("Next →", use_container_width=True,
                       key=f"ppa_next_{state['round']}"):
-            state["phase"] = "question" if state["round"] < ROUNDS else "done"
+            state["round"] += 1
+            if state["round"] < ROUNDS:
+                t, o = _new_round()
+                state.update({"target": t, "options": o,
+                               "start_ts": time.time(), "phase": "question"})
+            else:
+                state["phase"] = "done"
             st.rerun()
 
     elif state["phase"] == "done":
