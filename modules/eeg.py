@@ -5,8 +5,14 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import time
 from datetime import datetime
-import serial_reader as sr
 from database import save_eeg_signal, get_eeg_signals, get_eeg_sessions
+
+try:
+    import serial_reader as sr
+    _SERIAL_AVAILABLE = True
+except Exception:
+    sr = None
+    _SERIAL_AVAILABLE = False
 
 REFRESH = 3   # seconds between auto-refresh
 
@@ -149,69 +155,75 @@ def render_eeg():
     # TAB 1 — Live EEG Recording (hardware serial reader)
     # ══════════════════════════════════════════════════════════════════════════
     with tab_live:
-        st.info(f"Patient: **{name}** | Serial Port: COM6 @ 9600 baud")
+        if not _SERIAL_AVAILABLE:
+            st.warning(
+                "Live EEG recording is not available in this environment "
+                "(serial hardware / pyserial not detected). "
+                "Use the **Manual Entry** tab to enter EEG values recorded during a session."
+            )
+        else:
+            st.info(f"Patient: **{name}** | Serial Port: COM6 @ 9600 baud")
 
-        ctrl_col, stat_col = st.columns(2)
-        with ctrl_col:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown("#### Recording Controls")
-            recording = sr.is_running()
-            if not recording:
-                if st.button("▶ Start EEG Recording", use_container_width=True,
-                              key="live_start"):
-                    session_id = datetime.now().strftime("EEG_%Y%m%d_%H%M%S")
-                    st.session_state["eeg_session_id"] = session_id
-                    st.session_state["eeg_patient_id"] = pid
-                    sr.start(pid, session_id)
-                    st.success(f"Recording started — Session: {session_id}")
+            ctrl_col, stat_col = st.columns(2)
+            with ctrl_col:
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.markdown("#### Recording Controls")
+                recording = sr.is_running()
+                if not recording:
+                    if st.button("▶ Start EEG Recording", use_container_width=True,
+                                  key="live_start"):
+                        session_id = datetime.now().strftime("EEG_%Y%m%d_%H%M%S")
+                        st.session_state["eeg_session_id"] = session_id
+                        st.session_state["eeg_patient_id"] = pid
+                        sr.start(pid, session_id)
+                        st.success(f"Recording started — Session: {session_id}")
+                        st.rerun()
+                else:
+                    if st.button("⏹ Stop Recording", use_container_width=True,
+                                  key="live_stop"):
+                        sr.stop()
+                        st.success("Recording stopped.")
+                        st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            with stat_col:
+                st.markdown('<div class="card">', unsafe_allow_html=True)
+                st.markdown("#### Status")
+                status = sr.get_status()
+                if sr.is_running():
+                    st.success(f"🔴 LIVE — {status['samples']} samples")
+                else:
+                    st.info("⏸ Not recording")
+                if status["last_error"]:
+                    st.error(f"Error: {status['last_error']}")
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            sessions = get_eeg_sessions(pid)
+            if not sessions:
+                if sr.is_running():
+                    st.info("Waiting for first samples… auto-refreshing.")
+                    time.sleep(REFRESH)
                     st.rerun()
+                else:
+                    st.info("No EEG data yet. Press Start to begin recording.")
             else:
-                if st.button("⏹ Stop Recording", use_container_width=True,
-                              key="live_stop"):
-                    sr.stop()
-                    st.success("Recording stopped.")
+                labels = {
+                    f"{s['session_id']}  ({s['samples']} samples, "
+                    f"avg attn {round(s['avg_attention'] or 0)}%)": s["session_id"]
+                    for s in sessions
+                }
+                active_sid = st.session_state.get("eeg_session_id")
+                default_i  = next((i for i, sid in enumerate(labels.values())
+                                   if sid == active_sid), 0)
+                sel_lbl    = st.selectbox("View Session", list(labels.keys()),
+                                           index=default_i, key="live_sess_sel")
+                sel_sid    = labels[sel_lbl]
+                _show_session(pid, sel_sid, "live")
+
+                if sr.is_running() and sel_sid == st.session_state.get("eeg_session_id"):
+                    st.caption(f"Auto-refreshing every {REFRESH}s…")
+                    time.sleep(REFRESH)
                     st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with stat_col:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown("#### Status")
-            status = sr.get_status()
-            if sr.is_running():
-                st.success(f"🔴 LIVE — {status['samples']} samples")
-            else:
-                st.info("⏸ Not recording")
-            if status["last_error"]:
-                st.error(f"Error: {status['last_error']}")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        sessions = get_eeg_sessions(pid)
-        if not sessions:
-            if sr.is_running():
-                st.info("Waiting for first samples… auto-refreshing.")
-                time.sleep(REFRESH)
-                st.rerun()
-            else:
-                st.info("No EEG data yet. Press Start to begin recording.")
-            return
-
-        labels = {
-            f"{s['session_id']}  ({s['samples']} samples, "
-            f"avg attn {round(s['avg_attention'] or 0)}%)": s["session_id"]
-            for s in sessions
-        }
-        active_sid = st.session_state.get("eeg_session_id")
-        default_i  = next((i for i, sid in enumerate(labels.values())
-                           if sid == active_sid), 0)
-        sel_lbl    = st.selectbox("View Session", list(labels.keys()),
-                                   index=default_i, key="live_sess_sel")
-        sel_sid    = labels[sel_lbl]
-        _show_session(pid, sel_sid, "live")
-
-        if sr.is_running() and sel_sid == st.session_state.get("eeg_session_id"):
-            st.caption(f"Auto-refreshing every {REFRESH}s…")
-            time.sleep(REFRESH)
-            st.rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
     # TAB 2 — Manual EEG Entry
