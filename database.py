@@ -187,10 +187,14 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_mood_patient   ON mood_logs(patient_id);
         """)
 
-        # Seed default staff accounts (plain text — legacy, still works via fallback auth)
+        # Seed default accounts.
+        # ADMIN_PASSWORD env var lets you set the admin password before first deploy.
+        # If the admin row already exists this INSERT OR IGNORE is a no-op, so
+        # changing the env var after first boot has no effect (use Admin Panel instead).
+        admin_pwd = os.environ.get("ADMIN_PASSWORD", "Admin@2026!")
         conn.execute(
             "INSERT OR IGNORE INTO users (username, email, password, role) VALUES (?,?,?,?)",
-            ("admin", "admin@adhd.local", "admin123", "admin")
+            ("admin", "admin@adhd.local", admin_pwd, "admin")
         )
         conn.execute(
             "INSERT OR IGNORE INTO users (username, email, password, role) VALUES (?,?,?,?)",

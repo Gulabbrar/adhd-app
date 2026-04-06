@@ -256,19 +256,19 @@ if st.session_state.user is None:
 
         # ── REGISTER ───────────────────────────────────────────────────────────
         else:
+            # Admin role is NOT available for public registration.
+            # Admin accounts are created only by an existing admin via the Admin Panel.
             role_info = {
                 "patient":   ("Patient",   "🏥", "#dbeafe", "#1d4ed8",
                                "Access your dashboard, book appointments & track progress"),
                 "clinician": ("Clinician", "👨‍⚕️", "#dcfce7", "#15803d",
                                "Run assessments, view EEG data & manage patients"),
-                "admin":     ("Admin",     "⚙️",  "#fef3c7", "#b45309",
-                               "Full platform access including user management"),
             }
 
             with st.form("register_form"):
                 role = st.selectbox(
                     "Register As",
-                    ["patient", "clinician", "admin"],
+                    ["patient", "clinician"],
                     format_func=lambda r: f"{role_info[r][1]} {role_info[r][0]}"
                 )
 
