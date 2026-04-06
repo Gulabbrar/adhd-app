@@ -13,3 +13,5 @@ opencv-python-headless
 openpyxl
 uvicorn
 fastapi
+PyJWT
+python-multipart

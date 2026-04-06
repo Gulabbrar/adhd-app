@@ -3,7 +3,8 @@ main.py — ADHD Assessment Platform
 Entry point: streamlit run main.py
 """
 import streamlit as st
-from database import init_db, get_patients, add_patient, authenticate
+from database import init_db, get_patients, add_patient, authenticate, register_user
+
 # ── Page Config ────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="ADHD Assessment Platform",
@@ -39,7 +40,7 @@ section[data-testid="stSidebar"] h3 { color: white !important; }
 section[data-testid="stSidebar"] hr { border-color: rgba(255,255,255,0.2) !important; }
 section[data-testid="stSidebar"] .stSelectbox div { color: #0a1628 !important; }
 
-/* ── Sidebar form inputs — override wildcard white text ──────────────── */
+/* ── Sidebar form inputs ─────────────────────────────────────────────── */
 section[data-testid="stSidebar"] input,
 section[data-testid="stSidebar"] input[type="text"],
 section[data-testid="stSidebar"] input[type="number"],
@@ -50,17 +51,13 @@ section[data-testid="stSidebar"] textarea {
     border-radius: 6px !important;
 }
 section[data-testid="stSidebar"] input::placeholder,
-section[data-testid="stSidebar"] textarea::placeholder {
-    color: #94a3b8 !important;
-}
-/* Expander header stays white, but its inner content box is readable */
+section[data-testid="stSidebar"] textarea::placeholder { color: #94a3b8 !important; }
 section[data-testid="stSidebar"] [data-testid="stExpander"] details summary {
     color: rgba(255,255,255,0.9) !important;
 }
 section[data-testid="stSidebar"] [data-testid="stForm"] label {
     color: rgba(255,255,255,0.85) !important;
 }
-/* Number input spin buttons */
 section[data-testid="stSidebar"] [data-testid="stNumberInput"] input {
     color: #0a1628 !important;
     background-color: #ffffff !important;
@@ -179,8 +176,8 @@ section[data-testid="stSidebar"] [data-testid="stNumberInput"] input {
 /* ── DataFrames ─────────────────────────────────────────────────────── */
 .stDataFrame { border-radius: 10px !important; box-shadow: 0 2px 8px rgba(15,23,42,0.07) !important; }
 
-/* ── Login card ──────────────────────────────────────────────────────── */
-.login-wrap { max-width: 420px; margin: 80px auto 0; }
+/* ── Auth card ───────────────────────────────────────────────────────── */
+.login-wrap { max-width: 480px; margin: 60px auto 0; }
 .login-header {
     background: linear-gradient(135deg, #0d47a1, #1565c0);
     padding: 28px 24px; border-radius: 14px 14px 0 0; text-align: center;
@@ -192,71 +189,215 @@ section[data-testid="stSidebar"] [data-testid="stNumberInput"] input {
     border-radius: 0 0 14px 14px; padding: 24px;
     box-shadow: 0 10px 40px rgba(13,71,161,0.15);
 }
+.role-badge {
+    display:inline-block;padding:3px 12px;border-radius:50px;
+    font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;
+}
 </style>
 """, unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# AUTH
+# SESSION STATE
 # ══════════════════════════════════════════════════════════════════════════════
 if "user" not in st.session_state:
     st.session_state.user = None
 if "current_patient" not in st.session_state:
     st.session_state.current_patient = None
+if "auth_mode" not in st.session_state:
+    st.session_state.auth_mode = "Login"
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AUTH PAGE
+# ══════════════════════════════════════════════════════════════════════════════
 if st.session_state.user is None:
-    _, col, _ = st.columns([1, 1.2, 1])
+    _, col, _ = st.columns([1, 1.4, 1])
     with col:
         st.markdown("""
         <div class="login-wrap">
         <div class="login-header">
             <div style="font-size:2.5rem;">🧠</div>
             <h2>ADHD Assessment Platform</h2>
-            <p>Questionnaire · Emotion · Cognitive Testing</p>
+            <p>Questionnaire · Emotion · Cognitive Testing · Patient Portal</p>
         </div>
         <div class="login-body">
         """, unsafe_allow_html=True)
 
-        mode = st.selectbox("Mode", ["Login", "Register"], label_visibility="collapsed")
-        username = st.text_input("Username", placeholder="Enter username")
-        password = st.text_input("Password", type="password", placeholder="Enter password")
+        mode = st.selectbox("Mode", ["Login", "Register"],
+                            index=0 if st.session_state.auth_mode == "Login" else 1,
+                            label_visibility="collapsed",
+                            key="auth_mode_sel")
 
-        if mode == "Register":
-            role = st.selectbox("Register As", ["clinician", "admin"])
-            if st.button("Create Account", use_container_width=True):
+        # ── LOGIN ──────────────────────────────────────────────────────────────
+        if mode == "Login":
+            with st.form("login_form"):
+                username = st.text_input("Username", placeholder="Enter username")
+                password = st.text_input("Password", type="password", placeholder="Enter password")
+                sign_in  = st.form_submit_button("Sign In", use_container_width=True)
+
+            if sign_in:
                 if username and password:
-                    try:
-                        from database import get_conn
-                        with get_conn() as conn:
-                            conn.execute(
-                                "INSERT INTO users (username, password, role) VALUES (?,?,?)",
-                                (username, password, role)
-                            )
-                        st.success("Account created! Please log in.")
-                    except Exception:
-                        st.error("Username already exists.")
+                    user = authenticate(username, password)
+                    if user:
+                        st.session_state.user = user
+                        st.rerun()
+                    else:
+                        st.error("Invalid username or password.")
                 else:
                     st.warning("Please enter username and password.")
 
-        if mode == "Login":
-            if st.button("Sign In", use_container_width=True):
-                user = authenticate(username, password)
-                if user:
-                    st.session_state.user = user
-                    st.rerun()
+            st.markdown("""
+            <p style="text-align:center;color:#94a3b8;font-size:0.8rem;margin-top:16px;">
+                Don't have an account?
+                <a href="#" style="color:#1565c0;">Register below</a>
+            </p>
+            """, unsafe_allow_html=True)
+
+        # ── REGISTER ───────────────────────────────────────────────────────────
+        else:
+            role_info = {
+                "patient":   ("Patient",   "🏥", "#dbeafe", "#1d4ed8",
+                               "Access your dashboard, book appointments & track progress"),
+                "clinician": ("Clinician", "👨‍⚕️", "#dcfce7", "#15803d",
+                               "Run assessments, view EEG data & manage patients"),
+                "admin":     ("Admin",     "⚙️",  "#fef3c7", "#b45309",
+                               "Full platform access including user management"),
+            }
+
+            with st.form("register_form"):
+                role = st.selectbox(
+                    "Register As",
+                    ["patient", "clinician", "admin"],
+                    format_func=lambda r: f"{role_info[r][1]} {role_info[r][0]}"
+                )
+
+                # Show role description
+                ri = role_info[role]
+                st.markdown(f"""
+                <div style="background:{ri[2]};color:{ri[3]};border-radius:8px;
+                            padding:8px 12px;font-size:0.8rem;margin-bottom:8px;">
+                    {ri[4]}
+                </div>
+                """, unsafe_allow_html=True)
+
+                c1, c2 = st.columns(2)
+                username  = c1.text_input("Username *",   placeholder="Choose a username")
+                email     = c2.text_input("Email *",      placeholder="your@email.com")
+                full_name = st.text_input("Full Name",     placeholder="Optional")
+
+                if role == "patient":
+                    c3, c4 = st.columns(2)
+                    age    = c3.number_input("Age", min_value=3, max_value=120, value=18)
+                    gender = c4.selectbox("Gender", ["", "Male", "Female", "Other"],
+                                          format_func=lambda x: "Select gender" if x == "" else x)
                 else:
-                    st.error("Invalid username or password.")
+                    age, gender = 0, ""
+
+                c5, c6 = st.columns(2)
+                password  = c5.text_input("Password *",         type="password", placeholder="Min 6 chars")
+                password2 = c6.text_input("Confirm Password *", type="password", placeholder="Repeat password")
+
+                submitted = st.form_submit_button("Create Account", use_container_width=True)
+
+            if submitted:
+                if not username or not email or not password:
+                    st.error("Username, email, and password are required.")
+                elif len(password) < 6:
+                    st.error("Password must be at least 6 characters.")
+                elif password != password2:
+                    st.error("Passwords do not match.")
+                elif "@" not in email:
+                    st.error("Please enter a valid email address.")
+                else:
+                    result = register_user(
+                        username=username.strip(),
+                        email=email.strip(),
+                        password=password,
+                        role=role,
+                        full_name=full_name.strip(),
+                        age=int(age) if role == "patient" else 0,
+                        gender=gender if role == "patient" else "",
+                    )
+                    if result["ok"]:
+                        if role == "patient":
+                            st.success(
+                                f"Account created! Your Patient ID is "
+                                f"**{result['patient_uid']}**. Please log in."
+                            )
+                            st.markdown(f"""
+                            <div style="background:#f0fdf4;border:1px solid #86efac;
+                                        border-radius:8px;padding:12px 16px;margin-top:8px;">
+                                <p style="margin:0;color:#166534;font-size:0.88rem;">
+                                    Save this ID:
+                                    <code style="font-size:1rem;background:#dcfce7;
+                                    padding:3px 10px;border-radius:6px;">
+                                    {result['patient_uid']}</code>
+                                </p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        else:
+                            st.success("Account created! Please log in.")
+                    else:
+                        st.error(result["error"])
 
         st.markdown("</div></div>", unsafe_allow_html=True)
     st.stop()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SIDEBAR
+# PATIENT PORTAL — separate layout for patient role
+# ══════════════════════════════════════════════════════════════════════════════
+user = st.session_state.user
+role = user.get("role")
+
+if role == "patient":
+    from database import get_user_patient
+    patient = get_user_patient(user["id"])
+    pat_uid = patient.get("patient_uid", "") if patient else ""
+
+    # Patient sidebar
+    with st.sidebar:
+        st.markdown("## 🧠 ADHD Platform")
+        st.markdown(f"**{patient['name'] if patient else user['username']}**")
+        if pat_uid:
+            st.markdown(f"`{pat_uid}`")
+        st.markdown(f"*Patient Portal*")
+        st.markdown("---")
+
+        st.markdown("### Navigation")
+        pat_pages = [
+            "🏠 My Dashboard",
+            "📅 Book Appointment",
+            "⭐ Reviews",
+        ]
+        page = st.radio("Go to", pat_pages, label_visibility="collapsed")
+        st.markdown("---")
+        if st.button("Logout", use_container_width=True):
+            st.session_state.user = None
+            st.rerun()
+
+    # Patient page routing
+    if "Dashboard" in page:
+        from modules.patient_dashboard import render_patient_dashboard
+        render_patient_dashboard()
+    elif "Appointment" in page:
+        from modules.appointments import render_appointments
+        render_appointments()
+    elif "Reviews" in page:
+        from modules.reviews import render_reviews
+        render_reviews()
+
+    st.stop()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CLINICIAN / ADMIN SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
     st.markdown("## 🧠 ADHD Platform")
-    st.markdown(f"*Logged in as:* **{st.session_state.user.get('role','user')}**")
+    role_label = {"admin": "Admin", "clinician": "Clinician"}.get(role, role.title())
+    st.markdown(f"*Logged in as:* **{role_label}**")
     st.markdown("---")
 
     # ── Patient Selector ─────────────────────────────────────────────────────
@@ -271,7 +412,9 @@ with st.sidebar:
         st.session_state.current_patient = pt_opts[sel_key]
         if st.session_state.current_patient:
             p = st.session_state.current_patient
-            st.caption(f"Age: {p['age']} | Gender: {p['gender']}")
+            uid = p.get("patient_uid") or ""
+            st.caption(f"Age: {p['age']} | Gender: {p['gender']}"
+                       + (f"\nID: {uid}" if uid else ""))
     else:
         st.caption("No patients yet.")
 
@@ -281,7 +424,7 @@ with st.sidebar:
             qname   = st.text_input("Name *")
             qa, qg  = st.columns(2)
             qage    = qa.number_input("Age", 3, 100, 10)
-            qgender = qg.selectbox("Gender", ["Male","Female","Other"])
+            qgender = qg.selectbox("Gender", ["Male", "Female", "Other"])
             if st.form_submit_button("Add"):
                 if qname.strip():
                     new_id = add_patient(qname.strip(), qage, qgender)
@@ -302,8 +445,10 @@ with st.sidebar:
         "📈 Patient Progress",
         "🗂 Historical Data",
         "📄 ADHD Report",
+        "📅 Appointments",
+        "⭐ Reviews",
     ]
-    if st.session_state.user.get("role") == "admin":
+    if role == "admin":
         pages.append("⚙ Admin Panel")
 
     page = st.radio("Go to", pages, label_visibility="collapsed")
@@ -316,21 +461,25 @@ with st.sidebar:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PAGE ROUTING
+# CLINICIAN / ADMIN PAGE ROUTING
 # ══════════════════════════════════════════════════════════════════════════════
-if   "Home"        in page:
+if   "Home"          in page:
     from modules.home          import render_home;          render_home()
 elif "Questionnaire" in page:
     from modules.questionnaire import render_questionnaire; render_questionnaire()
-elif "Emotion"     in page:
+elif "Emotion"       in page:
     from modules.emotion       import render_emotion;       render_emotion()
-elif "Activity"    in page:
+elif "Activity"      in page:
     from modules.activity      import render_activity;      render_activity()
-elif "Progress"    in page:
+elif "Progress"      in page:
     from modules.progress      import render_progress;      render_progress()
-elif "Historical"  in page:
+elif "Historical"    in page:
     from modules.history       import render_history;       render_history()
-elif "Report"      in page:
+elif "Report"        in page:
     from modules.report        import render_report;        render_report()
-elif "Admin"       in page:
+elif "Appointments"  in page:
+    from modules.appointments  import render_appointments;  render_appointments()
+elif "Reviews"       in page:
+    from modules.reviews       import render_reviews;       render_reviews()
+elif "Admin"         in page:
     from modules.admin         import render_admin;         render_admin()

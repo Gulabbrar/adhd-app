@@ -8,6 +8,8 @@ services:
     envVars:
       - key: DB_PATH
         value: /app/data/adhd_platform.db
+      - key: JWT_SECRET
+        generateValue: true
     disk:
       name: adhd-db
       mountPath: /app/data
