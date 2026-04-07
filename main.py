@@ -37,8 +37,18 @@ section[data-testid="stSidebar"] * { color: rgba(255,255,255,0.9) !important; }
 section[data-testid="stSidebar"] h1,
 section[data-testid="stSidebar"] h2,
 section[data-testid="stSidebar"] h3 { color: white !important; }
-section[data-testid="stSidebar"] hr { border-color: rgba(255,255,255,0.2) !important; }
+section[data-testid="stSidebar"] hr { border-color: rgba(255,255,255,0.18) !important; }
 section[data-testid="stSidebar"] .stSelectbox div { color: #0a1628 !important; }
+
+/* ── Sidebar code tags — force readable colours ──────────────────────── */
+section[data-testid="stSidebar"] code {
+    background: rgba(255,255,255,0.15) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255,255,255,0.25) !important;
+    padding: 2px 8px !important;
+    border-radius: 6px !important;
+    font-size: 0.82rem !important;
+}
 
 /* ── Sidebar form inputs ─────────────────────────────────────────────── */
 section[data-testid="stSidebar"] input,
@@ -63,39 +73,69 @@ section[data-testid="stSidebar"] [data-testid="stNumberInput"] input {
     background-color: #ffffff !important;
 }
 
+/* ── Sidebar nav radio ────────────────────────────────────────────────── */
+section[data-testid="stSidebar"] [data-testid="stRadio"] label {
+    padding: 6px 10px !important;
+    border-radius: 7px !important;
+    transition: background 0.15s !important;
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
+}
+section[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
+    background: rgba(255,255,255,0.1) !important;
+}
+
 /* ── Cards ──────────────────────────────────────────────────────────── */
 .card {
     background: white;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 16px 20px;
-    box-shadow: 0 2px 10px rgba(15,23,42,0.07);
-    margin-bottom: 12px;
+    border-radius: 14px;
+    padding: 20px 24px;
+    box-shadow: 0 1px 6px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.04);
+    margin-bottom: 14px;
+    transition: box-shadow 0.2s;
+}
+.card:hover {
+    box-shadow: 0 2px 12px rgba(15,23,42,0.1), 0 6px 24px rgba(15,23,42,0.06);
+}
+
+/* ── Section divider label ──────────────────────────────────────────── */
+.section-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #64748b;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 /* ── Page Title ─────────────────────────────────────────────────────── */
 .page-title {
     color: #0d47a1 !important;
-    font-size: 1.45rem !important;
-    font-weight: 700 !important;
-    margin-bottom: 1rem !important;
+    font-size: 1.5rem !important;
+    font-weight: 800 !important;
+    margin-bottom: 1.2rem !important;
+    padding-bottom: 0.6rem !important;
+    border-bottom: 2px solid #e2e8f0 !important;
 }
 
 /* ── Metrics ────────────────────────────────────────────────────────── */
 [data-testid="metric-container"] {
     background: white !important;
     border: 1px solid #e2e8f0 !important;
-    border-top: 4px solid #1565c0 !important;
-    border-radius: 10px !important;
-    padding: 14px 16px !important;
-    box-shadow: 0 2px 8px rgba(15,23,42,0.07) !important;
+    border-top: 3px solid #1565c0 !important;
+    border-radius: 12px !important;
+    padding: 16px 18px !important;
+    box-shadow: 0 1px 6px rgba(15,23,42,0.06) !important;
 }
 [data-testid="stMetricLabel"] {
-    font-size: 0.72rem !important; font-weight: 600 !important;
-    text-transform: uppercase; letter-spacing: 0.5px; color: #64748b !important;
+    font-size: 0.7rem !important; font-weight: 700 !important;
+    text-transform: uppercase; letter-spacing: 0.6px; color: #64748b !important;
 }
 [data-testid="stMetricValue"] {
-    font-size: 1.8rem !important; font-weight: 700 !important; color: #0d47a1 !important;
+    font-size: 1.7rem !important; font-weight: 800 !important; color: #0d47a1 !important;
 }
 
 /* ── Buttons ────────────────────────────────────────────────────────── */
@@ -104,28 +144,41 @@ section[data-testid="stSidebar"] [data-testid="stNumberInput"] input {
     color: white !important; border: none !important;
     border-radius: 8px !important; font-weight: 600 !important;
     font-family: 'Inter', sans-serif !important;
+    font-size: 0.88rem !important;
     transition: all 0.18s ease !important;
-    box-shadow: 0 2px 8px rgba(13,71,161,0.3) !important;
+    box-shadow: 0 2px 8px rgba(13,71,161,0.25) !important;
+    padding: 0.45rem 1rem !important;
 }
-.stButton > button:hover { transform: translateY(-1px) !important; }
+.stButton > button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 14px rgba(13,71,161,0.35) !important;
+}
 .stDownloadButton > button {
     background: linear-gradient(135deg, #2e7d32, #1b5e20) !important;
     color: white !important; border: none !important;
     border-radius: 8px !important; font-weight: 600 !important;
+    font-size: 0.88rem !important;
 }
 
 /* ── Tabs ───────────────────────────────────────────────────────────── */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 4px; background: #e2e8f0; padding: 4px; border-radius: 10px;
+    gap: 4px; background: #e8edf4; padding: 5px; border-radius: 12px;
 }
 .stTabs [data-baseweb="tab"] {
-    border-radius: 7px !important; font-weight: 500 !important;
-    font-size: 0.82rem !important; padding: 0.4rem 0.9rem !important;
+    border-radius: 8px !important; font-weight: 500 !important;
+    font-size: 0.83rem !important; padding: 0.45rem 1rem !important;
     color: #64748b !important; background: transparent !important; border: none !important;
+    transition: all 0.15s !important;
 }
 .stTabs [aria-selected="true"] {
     background: white !important; color: #0d47a1 !important;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.1) !important; font-weight: 700 !important;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.1) !important; font-weight: 700 !important;
+}
+
+/* ── Alerts / info boxes ─────────────────────────────────────────────── */
+[data-testid="stAlert"] {
+    border-radius: 10px !important;
+    font-size: 0.88rem !important;
 }
 
 /* ── Question cards ──────────────────────────────────────────────────── */
@@ -143,55 +196,57 @@ section[data-testid="stSidebar"] [data-testid="stNumberInput"] input {
 
 /* ── Questionnaire horizontal radio buttons ──────────────────────────── */
 [data-testid="stForm"] [role="radiogroup"] {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 0 !important;
-    background: #f1f5f9;
-    border-radius: 8px;
-    padding: 4px;
-    margin-bottom: 10px;
+    display: flex !important; flex-direction: row !important;
+    gap: 0 !important; background: #f1f5f9;
+    border-radius: 8px; padding: 4px; margin-bottom: 10px;
 }
 [data-testid="stForm"] [role="radiogroup"] label {
-    flex: 1 !important;
-    text-align: center !important;
-    cursor: pointer;
-    padding: 6px 4px !important;
-    border-radius: 6px !important;
-    font-size: 0.78rem !important;
-    font-weight: 500 !important;
-    color: #475569 !important;
-    transition: background 0.15s, color 0.15s;
-    white-space: nowrap;
+    flex: 1 !important; text-align: center !important;
+    cursor: pointer; padding: 6px 4px !important;
+    border-radius: 6px !important; font-size: 0.78rem !important;
+    font-weight: 500 !important; color: #475569 !important;
+    transition: background 0.15s, color 0.15s; white-space: nowrap;
 }
 [data-testid="stForm"] [role="radiogroup"] label:has(input:checked) {
-    background: white !important;
-    color: #0d47a1 !important;
+    background: white !important; color: #0d47a1 !important;
     font-weight: 700 !important;
     box-shadow: 0 1px 4px rgba(13,71,161,0.18) !important;
 }
-[data-testid="stForm"] [role="radiogroup"] input[type="radio"] {
-    display: none !important;
-}
+[data-testid="stForm"] [role="radiogroup"] input[type="radio"] { display: none !important; }
 
 /* ── DataFrames ─────────────────────────────────────────────────────── */
-.stDataFrame { border-radius: 10px !important; box-shadow: 0 2px 8px rgba(15,23,42,0.07) !important; }
+.stDataFrame {
+    border-radius: 12px !important;
+    box-shadow: 0 1px 6px rgba(15,23,42,0.07) !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+/* ── Expanders ──────────────────────────────────────────────────────── */
+[data-testid="stExpander"] {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    background: white !important;
+}
 
 /* ── Auth card ───────────────────────────────────────────────────────── */
-.login-wrap { max-width: 480px; margin: 60px auto 0; }
+.login-wrap { max-width: 460px; margin: 50px auto 0; }
 .login-header {
-    background: linear-gradient(135deg, #0d47a1, #1565c0);
-    padding: 28px 24px; border-radius: 14px 14px 0 0; text-align: center;
+    background: linear-gradient(135deg, #0a1628, #1565c0);
+    padding: 32px 28px; border-radius: 16px 16px 0 0; text-align: center;
 }
-.login-header h2 { color: white !important; margin: 8px 0 4px !important; font-size: 1.3rem !important; }
-.login-header p  { color: rgba(255,255,255,0.75); font-size: 0.82rem; margin: 0; }
+.login-header h2 {
+    color: white !important; margin: 0 0 6px !important;
+    font-size: 1.4rem !important; font-weight: 800 !important;
+}
+.login-header p  { color: rgba(255,255,255,0.7); font-size: 0.82rem; margin: 0; }
 .login-body {
     background: white; border: 1px solid #e2e8f0; border-top: none;
-    border-radius: 0 0 14px 14px; padding: 24px;
-    box-shadow: 0 10px 40px rgba(13,71,161,0.15);
+    border-radius: 0 0 16px 16px; padding: 28px;
+    box-shadow: 0 16px 48px rgba(13,71,161,0.12);
 }
 .role-badge {
-    display:inline-block;padding:3px 12px;border-radius:50px;
-    font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;
+    display: inline-block; padding: 3px 12px; border-radius: 50px;
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -360,7 +415,14 @@ if role == "patient":
         st.markdown("## ADHD Platform")
         st.markdown(f"**{patient['name'] if patient else user['username']}**")
         if pat_uid:
-            st.markdown(f"`{pat_uid}`")
+            st.markdown(
+                f'<div style="background:rgba(255,255,255,0.14);border:1px solid '
+                f'rgba(255,255,255,0.3);border-radius:8px;padding:7px 14px;'
+                f'font-family:monospace;font-size:0.88rem;font-weight:600;'
+                f'color:#ffffff !important;letter-spacing:0.6px;margin:4px 0 6px;">'
+                f'{pat_uid}</div>',
+                unsafe_allow_html=True
+            )
         st.markdown(f"*Patient Portal*")
         st.markdown("---")
 

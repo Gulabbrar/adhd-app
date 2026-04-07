@@ -220,6 +220,10 @@ def render_patient_report():
             st.rerun()
         return
 
+    # ── Show review dialog immediately when collaborative report is available ──
+    if collab_reports and not st.session_state.get("review_dialog_done"):
+        _review_dialog(pid, user["id"])
+
     tab_collab, tab_self, tab_hist = st.tabs([
         "Collaborative Assessment", "Self-Assessment", "Report History"
     ])
@@ -335,9 +339,6 @@ def render_patient_report():
             except Exception as e:
                 st.warning(f"PDF generation failed: {e}")
 
-            # ── Trigger review dialog once per session ─────────────────────────
-            if not st.session_state.get("review_dialog_done"):
-                _review_dialog(pid, user["id"])
 
     # ══════════════════════════════════════════════════════════════════════════
     # TAB 2 — Self-Assessment Report (questionnaire only)
