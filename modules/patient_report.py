@@ -267,15 +267,15 @@ def render_patient_report():
             # ── Component gauges ───────────────────────────────────────────────
             if has_eeg:
                 g1, g2, g3, g4 = st.columns(4)
-                g1.plotly_chart(_gauge(eeg_s,  "EEG"),          use_container_width=True, key="pr_cg0")
-                g2.plotly_chart(_gauge(q_s,    "Questionnaire"), use_container_width=True, key="pr_cg1")
-                g3.plotly_chart(_gauge(emo_s,  "Emotion"),       use_container_width=True, key="pr_cg2")
-                g4.plotly_chart(_gauge(act_s,  "Activity"),      use_container_width=True, key="pr_cg3")
+                g1.plotly_chart(_gauge(eeg_s,  "EEG",           "#7b1fa2"), use_container_width=True, key="pr_cg0")
+                g2.plotly_chart(_gauge(q_s,    "Questionnaire", "#c62828"), use_container_width=True, key="pr_cg1")
+                g3.plotly_chart(_gauge(emo_s,  "Emotion",       "#f57f17"), use_container_width=True, key="pr_cg2")
+                g4.plotly_chart(_gauge(act_s,  "Activity",      "#2e7d32"), use_container_width=True, key="pr_cg3")
             else:
                 g1, g2, g3 = st.columns(3)
-                g1.plotly_chart(_gauge(q_s,   "Questionnaire"), use_container_width=True, key="pr_cg1")
-                g2.plotly_chart(_gauge(emo_s, "Emotion"),       use_container_width=True, key="pr_cg2")
-                g3.plotly_chart(_gauge(act_s, "Activity"),      use_container_width=True, key="pr_cg3")
+                g1.plotly_chart(_gauge(q_s,   "Questionnaire", "#c62828"), use_container_width=True, key="pr_cg1")
+                g2.plotly_chart(_gauge(emo_s, "Emotion",       "#f57f17"), use_container_width=True, key="pr_cg2")
+                g3.plotly_chart(_gauge(act_s, "Activity",      "#2e7d32"), use_container_width=True, key="pr_cg3")
 
             st.markdown("---")
             st.markdown("#### Component Analysis")
