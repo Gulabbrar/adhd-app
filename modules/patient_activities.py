@@ -444,7 +444,7 @@ def _results_panel(pid: int):
 # MAIN ENTRY
 # ══════════════════════════════════════════════════════════════════════════════
 def render_patient_activities():
-    st.markdown('<h2 class="page-title">🎮 Cognitive Activities</h2>',
+    st.markdown('<h2 class="page-title">Cognitive Activities</h2>',
                 unsafe_allow_html=True)
 
     user    = st.session_state.user

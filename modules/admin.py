@@ -12,7 +12,7 @@ def _export_csv(df: pd.DataFrame, label: str, filename: str):
 
 
 def render_admin():
-    st.markdown('<h2 class="page-title">⚙ Admin Panel</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="page-title">Admin Panel</h2>', unsafe_allow_html=True)
 
     # Restrict to admin role
     user = st.session_state.get("user", {})

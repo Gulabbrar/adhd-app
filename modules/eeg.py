@@ -137,7 +137,7 @@ def _show_session(pid: int, sid: str, key_prefix: str = "eeg"):
 
 # ── Main render ───────────────────────────────────────────────────────────────
 def render_eeg():
-    st.markdown('<h2 class="page-title">🧠 EEG Assessment</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="page-title">EEG Assessment</h2>', unsafe_allow_html=True)
 
     patient = st.session_state.get("current_patient")
     if not patient:
@@ -148,7 +148,7 @@ def render_eeg():
     name = patient["name"]
 
     tab_live, tab_manual, tab_history = st.tabs([
-        "📡 Live Recording", "✏️ Manual Entry", "📊 Session History"
+        "Live Recording", "Manual Entry", "Session History"
     ])
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -170,7 +170,7 @@ def render_eeg():
                 st.markdown("#### Recording Controls")
                 recording = sr.is_running()
                 if not recording:
-                    if st.button("▶ Start EEG Recording", use_container_width=True,
+                    if st.button("Start EEG Recording", use_container_width=True,
                                   key="live_start"):
                         session_id = datetime.now().strftime("EEG_%Y%m%d_%H%M%S")
                         st.session_state["eeg_session_id"] = session_id
@@ -179,7 +179,7 @@ def render_eeg():
                         st.success(f"Recording started — Session: {session_id}")
                         st.rerun()
                 else:
-                    if st.button("⏹ Stop Recording", use_container_width=True,
+                    if st.button("Stop Recording", use_container_width=True,
                                   key="live_stop"):
                         sr.stop()
                         st.success("Recording stopped.")
@@ -191,11 +191,11 @@ def render_eeg():
                 st.markdown("#### Status")
                 status = sr.get_status()
                 if sr.is_running():
-                    st.success(f"🔴 LIVE — {status['samples']} samples")
+                    st.success(f"LIVE — {status['samples']} samples")
                 else:
                     st.info("⏸ Not recording")
                 if status["last_error"]:
-                    st.error(f"Error: {status['last_error']}")
+                    st.error(status["last_error"])
                 st.markdown('</div>', unsafe_allow_html=True)
 
             sessions = get_eeg_sessions(pid)
@@ -310,7 +310,7 @@ def render_eeg():
                                   placeholder="e.g. Patient was calm, eyes open, baseline reading…",
                                   height=60)
 
-            submitted = st.form_submit_button("💾 Save EEG Reading", use_container_width=True)
+            submitted = st.form_submit_button("Save EEG Reading", use_container_width=True)
 
         if submitted:
             # Compute TBR live so the doctor sees it immediately
@@ -333,9 +333,11 @@ def render_eeg():
                 "midGamma":   mid_gamma,
             }
             save_eeg_signal(pid, session_id, data)
+            # Reset review prompt so patient sees it after the collaborative report is generated
+            st.session_state["review_dialog_done"] = False
 
             # Immediate interpretation feedback
-            st.success(f"Reading saved to session `{session_id}`")
+            st.success(f"EEG reading saved to session `{session_id}`. Generate the collaborative report to share it with the patient portal.")
 
             st.markdown(f"""
             <div style="background:#f0f4f8;border-radius:12px;padding:16px 20px;margin-top:12px;">

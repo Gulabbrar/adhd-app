@@ -53,18 +53,14 @@ def render_patient_dashboard():
     # ── Welcome Banner ─────────────────────────────────────────────────────────
     st.markdown(f"""
     <div style="background:linear-gradient(135deg,#0d47a1,#1976d2);
-                border-radius:14px;padding:24px 28px;margin-bottom:20px;
-                display:flex;align-items:center;gap:20px;">
-        <div style="font-size:3rem;">🧠</div>
-        <div>
-            <h2 style="color:white;margin:0;font-size:1.4rem;">
-                Welcome back, {patient['name']}!
-            </h2>
-            <p style="color:rgba(255,255,255,0.8);margin:4px 0 0;">
-                Patient ID: <strong style="color:#93c5fd;">{patient_uid}</strong>
-                &nbsp;|&nbsp; ADHD Assessment Platform
-            </p>
-        </div>
+                border-radius:14px;padding:24px 28px;margin-bottom:20px;">
+        <h2 style="color:white;margin:0 0 4px;font-size:1.4rem;">
+            Welcome back, {patient['name']}
+        </h2>
+        <p style="color:rgba(255,255,255,0.8);margin:0;font-size:0.9rem;">
+            Patient ID: <strong style="color:#93c5fd;">{patient_uid}</strong>
+            &nbsp;|&nbsp; ADHD Assessment Platform
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -86,7 +82,7 @@ def render_patient_dashboard():
 
     # ── Tabs ───────────────────────────────────────────────────────────────────
     tab_profile, tab_progress, tab_appts, tab_reports = st.tabs([
-        "👤 Profile", "📈 Progress", "📅 Appointments", "📄 Reports"
+        "Profile", "Progress", "Appointments", "Reports"
     ])
 
     # ── Profile Tab ────────────────────────────────────────────────────────────
@@ -114,7 +110,7 @@ def render_patient_dashboard():
             """)
 
         # Edit profile
-        with st.expander("✏️ Edit Profile"):
+        with st.expander("Edit Profile"):
             with st.form("edit_profile_form"):
                 c1, c2 = st.columns(2)
                 new_phone = c1.text_input("Phone", value=patient.get("phone") or "")
@@ -230,7 +226,7 @@ def render_patient_dashboard():
                     <div class="card" style="border-left:4px solid #1d4ed8;">
                         <div style="display:flex;justify-content:space-between;align-items:center;">
                             <div>
-                                <strong style="font-size:1rem;">📅 {a['appt_date']} at {a['appt_time']}</strong><br>
+                                <strong style="font-size:1rem;">{a['appt_date']} at {a['appt_time']}</strong><br>
                                 <span style="color:#64748b;font-size:0.85rem;">
                                     Token: <code style="background:#f1f5f9;padding:2px 8px;
                                     border-radius:4px;">{a['token']}</code>

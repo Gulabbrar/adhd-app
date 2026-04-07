@@ -46,7 +46,7 @@ def _risk_color(risk: str) -> str:
 
 
 def render_patient_assessment():
-    st.markdown('<h2 class="page-title">📋 ADHD Self-Assessment</h2>',
+    st.markdown('<h2 class="page-title">ADHD Self-Assessment</h2>',
                 unsafe_allow_html=True)
 
     user    = st.session_state.user

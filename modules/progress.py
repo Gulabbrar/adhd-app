@@ -8,7 +8,7 @@ from database import (get_patients, get_eeg_sessions, get_eeg_signals,
 
 
 def render_progress():
-    st.markdown('<h2 class="page-title">📈 Patient Progress Report</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="page-title">Patient Progress Report</h2>', unsafe_allow_html=True)
 
     patients = get_patients()
     if not patients:

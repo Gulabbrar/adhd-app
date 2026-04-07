@@ -55,7 +55,7 @@ def _analyze_image(img_bytes) -> dict | None:
 
 
 def render_emotion():
-    st.markdown('<h2 class="page-title">😊 Emotion Monitoring</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="page-title">Emotion Monitoring</h2>', unsafe_allow_html=True)
 
     patient = st.session_state.get("current_patient")
     if not patient:

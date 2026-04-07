@@ -380,7 +380,7 @@ def _attention_test(pid: int, session_id: str):
 # MAIN ENTRY POINT
 # ═══════════════════════════════════════════════════════════════════════════════
 def render_activity():
-    st.markdown('<h2 class="page-title">🎮 Cognitive Activity Tests</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="page-title">Cognitive Activity Tests</h2>', unsafe_allow_html=True)
 
     patient = st.session_state.get("current_patient")
     if not patient:

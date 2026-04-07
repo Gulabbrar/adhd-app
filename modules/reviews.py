@@ -35,7 +35,7 @@ def _time_ago(ts: str) -> str:
 
 
 def render_reviews():
-    st.markdown('<h2 class="page-title">⭐ Reviews & Feedback</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="page-title">Reviews & Feedback</h2>', unsafe_allow_html=True)
 
     user   = st.session_state.user
     role   = user.get("role")
@@ -141,8 +141,7 @@ def render_reviews():
         if not all_reviews:
             st.markdown("""
             <div style="text-align:center;padding:40px;color:#94a3b8;">
-                <div style="font-size:3rem;">💬</div>
-                <p>No reviews yet. Be the first to share!</p>
+                <p style="font-size:0.95rem;">No reviews yet. Be the first to share your experience.</p>
             </div>
             """, unsafe_allow_html=True)
         else:

@@ -50,7 +50,7 @@ def _risk_color(risk: str) -> str:
 
 
 def render_questionnaire():
-    st.markdown('<h2 class="page-title">📋 ADHD Questionnaire</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="page-title">ADHD Questionnaire</h2>', unsafe_allow_html=True)
 
     patient = st.session_state.get("current_patient")
     if not patient:

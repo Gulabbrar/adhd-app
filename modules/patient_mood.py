@@ -37,7 +37,7 @@ def _already_logged_today(logs: list) -> bool:
 
 # ── Main render ────────────────────────────────────────────────────────────────
 def render_patient_mood():
-    st.markdown('<h2 class="page-title">🎭 Mood Tracker</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="page-title">Mood Tracker</h2>', unsafe_allow_html=True)
 
     user    = st.session_state.user
     patient = get_user_patient(user["id"])

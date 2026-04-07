@@ -5,7 +5,7 @@ from database import get_dashboard_stats, get_patients
 
 
 def render_home():
-    st.markdown('<h2 class="page-title">🏠 Dashboard Overview</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="page-title">Dashboard Overview</h2>', unsafe_allow_html=True)
 
     stats = get_dashboard_stats()
 

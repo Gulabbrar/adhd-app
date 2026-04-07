@@ -217,9 +217,8 @@ if st.session_state.user is None:
         st.markdown("""
         <div class="login-wrap">
         <div class="login-header">
-            <div style="font-size:2.5rem;">🧠</div>
             <h2>ADHD Assessment Platform</h2>
-            <p>Questionnaire · Emotion · Cognitive Testing · Patient Portal</p>
+            <p>Questionnaire &nbsp;·&nbsp; Emotion &nbsp;·&nbsp; Cognitive Testing &nbsp;·&nbsp; Patient Portal</p>
         </div>
         <div class="login-body">
         """, unsafe_allow_html=True)
@@ -259,9 +258,9 @@ if st.session_state.user is None:
             # Admin role is NOT available for public registration.
             # Admin accounts are created only by an existing admin via the Admin Panel.
             role_info = {
-                "patient":   ("Patient",   "🏥", "#dbeafe", "#1d4ed8",
+                "patient":   ("Patient",   "", "#dbeafe", "#1d4ed8",
                                "Access your dashboard, book appointments & track progress"),
-                "clinician": ("Clinician", "👨‍⚕️", "#dcfce7", "#15803d",
+                "clinician": ("Clinician", "", "#dcfce7", "#15803d",
                                "Run assessments, view EEG data & manage patients"),
             }
 
@@ -269,7 +268,7 @@ if st.session_state.user is None:
                 role = st.selectbox(
                     "Register As",
                     ["patient", "clinician"],
-                    format_func=lambda r: f"{role_info[r][1]} {role_info[r][0]}"
+                    format_func=lambda r: role_info[r][0]
                 )
 
                 # Show role description
@@ -358,7 +357,7 @@ if role == "patient":
 
     # Patient sidebar
     with st.sidebar:
-        st.markdown("## 🧠 ADHD Platform")
+        st.markdown("## ADHD Platform")
         st.markdown(f"**{patient['name'] if patient else user['username']}**")
         if pat_uid:
             st.markdown(f"`{pat_uid}`")
@@ -367,13 +366,13 @@ if role == "patient":
 
         st.markdown("### Navigation")
         pat_pages = [
-            "🏠 My Dashboard",
-            "📋 Self-Assessment",
-            "📄 My Report",
-            "🎭 Mood Tracker",
-            "🎮 Activities",
-            "📅 Book Appointment",
-            "⭐ Reviews",
+            "My Dashboard",
+            "Self-Assessment",
+            "My Report",
+            "Mood Tracker",
+            "Activities",
+            "Book Appointment",
+            "Reviews",
         ]
         page = st.radio("Go to", pat_pages, label_visibility="collapsed",
                         key="patient_page")
@@ -412,14 +411,14 @@ if role == "patient":
 # CLINICIAN / ADMIN SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown("## 🧠 ADHD Platform")
+    st.markdown("## ADHD Platform")
     role_label = {"admin": "Admin", "clinician": "Clinician"}.get(role, role.title())
     st.markdown(f"*Logged in as:* **{role_label}**")
     st.markdown("---")
 
     # ── Patient Selector ─────────────────────────────────────────────────────
     patients = get_patients()
-    st.markdown("### 👤 Active Patient")
+    st.markdown("### Active Patient")
 
     if patients:
         pt_opts  = {"— Select Patient —": None}
@@ -436,7 +435,7 @@ with st.sidebar:
         st.caption("No patients yet.")
 
     # Quick-add patient
-    with st.expander("➕ Quick Add Patient"):
+    with st.expander("Quick Add Patient"):
         with st.form("quick_add"):
             qname   = st.text_input("Name *")
             qa, qg  = st.columns(2)
@@ -455,19 +454,19 @@ with st.sidebar:
     # ── Navigation ────────────────────────────────────────────────────────────
     st.markdown("### Navigation")
     pages = [
-        "🏠 Home Dashboard",
-        "📋 ADHD Questionnaire",
-        "😊 Emotion Monitoring",
-        "🎮 Activity Builder",
-        "🧠 EEG Assessment",
-        "📈 Patient Progress",
-        "🗂 Historical Data",
-        "📄 ADHD Report",
-        "📅 Appointments",
-        "⭐ Reviews",
+        "Home Dashboard",
+        "ADHD Questionnaire",
+        "Emotion Monitoring",
+        "Activity Builder",
+        "EEG Assessment",
+        "Patient Progress",
+        "Historical Data",
+        "ADHD Report",
+        "Appointments",
+        "Reviews",
     ]
     if role == "admin":
-        pages.append("⚙ Admin Panel")
+        pages.append("Admin Panel")
 
     page = st.radio("Go to", pages, label_visibility="collapsed")
 

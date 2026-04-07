@@ -11,7 +11,7 @@ def _to_csv(df: pd.DataFrame) -> bytes:
 
 
 def render_history():
-    st.markdown('<h2 class="page-title">🗂 Historical Data</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="page-title">Historical Data</h2>', unsafe_allow_html=True)
 
     patients = get_patients()
     if not patients:

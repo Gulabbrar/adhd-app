@@ -285,7 +285,7 @@ def _pdf_report(patient: dict, report: dict) -> bytes:
 # ── Main Render ────────────────────────────────────────────────────────────────
 
 def render_report():
-    st.markdown('<h2 class="page-title">📄 Final ADHD Assessment Report</h2>',
+    st.markdown('<h2 class="page-title">Final ADHD Assessment Report</h2>',
                 unsafe_allow_html=True)
 
     patients = get_patients()
@@ -391,7 +391,7 @@ def render_report():
                           "#f57f17" if eeg_sum["avg_tbr"] >= 1.5 else "#2e7d32")
                 st.markdown(f"""
                 <div class="card" style="margin-bottom:8px;border-left:4px solid #7b1fa2;">
-                    <b>🧠 EEG Analysis</b>
+                    <b>EEG Neurological Analysis</b>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;">
                         <div style="flex:1;min-width:120px;text-align:center;">
                             <div style="font-size:0.7rem;color:#64748b;text-transform:uppercase;">Sessions</div>
@@ -427,9 +427,9 @@ def render_report():
 
             # Interpretation cards
             sections = [
-                ("📋 Questionnaire Analysis",      q_text),
-                ("😊 Emotion Monitoring Analysis", emo_text),
-                ("🎮 Cognitive Activity Analysis", act_text),
+                ("Questionnaire Analysis",      q_text),
+                ("Emotion Monitoring Analysis", emo_text),
+                ("Cognitive Activity Analysis", act_text),
             ]
             for title, text in sections:
                 st.markdown(f"""
@@ -445,16 +445,18 @@ def render_report():
                     "session_id":            session_id,
                     "final_classification":  classification,
                     "risk_score":            risk_score,
+                    "eeg_score":             eeg_score,
                     "questionnaire_score":   q_score,
                     "emotion_score":         emo_score,
                     "activity_score":        act_score,
+                    "eeg_interpretation":    eeg_text,
                     "questionnaire_summary": q_text,
                     "emotion_summary":       emo_text,
                     "activity_summary":      act_text,
                 }
                 pdf_bytes = _pdf_report(patient, report_dict)
                 st.download_button(
-                    "⬇ Download PDF Report",
+                    "Download PDF Report",
                     data=pdf_bytes,
                     file_name=f"ADHD_Report_{patient['name'].replace(' ','_')}_{session_id}.pdf",
                     mime="application/pdf",
@@ -464,6 +466,9 @@ def render_report():
                 st.info("Install ReportLab (`pip install reportlab`) to enable PDF export.")
             except Exception as pdf_err:
                 st.warning(f"PDF generation failed: {pdf_err}. The on-screen report above is complete.")
+
+            # Signal patient portal to show review after report generation
+            st.session_state["review_dialog_done"] = False
 
     # ── Past Reports ────────────────────────────────────────────────────────
     with tab_history:

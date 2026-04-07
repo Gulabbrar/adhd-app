@@ -22,7 +22,7 @@ def _status_badge(status: str) -> str:
 
 
 def render_appointments():
-    st.markdown('<h2 class="page-title">📅 Appointments</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="page-title">Appointments</h2>', unsafe_allow_html=True)
 
     user    = st.session_state.user
     role    = user.get("role")
