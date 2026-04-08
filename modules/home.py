@@ -1,7 +1,7 @@
 """modules/home.py — Home Dashboard"""
 import streamlit as st
 import plotly.graph_objects as go
-from database import get_dashboard_stats, get_patients
+from database import get_dashboard_stats, get_patients, get_conn, _exec
 
 
 def render_home():
@@ -11,9 +11,8 @@ def render_home():
 
     # ── KPI Metrics ───────────────────────────────────────────────────────────
     c1, c2, c3, c4 = st.columns(4)
-    from database import get_conn
     with get_conn() as _c:
-        total_reports = _c.execute("SELECT COUNT(*) FROM assessment_reports").fetchone()[0]
+        total_reports = _exec(_c, "SELECT COUNT(*) as c FROM assessment_reports").fetchone()["c"]
 
     c1.metric("Total Patients",    stats["total_patients"])
     c2.metric("Assessments Done",  stats["total_assessments"])
