@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from database import (get_patients, add_patient, update_patient, delete_patient,
-                       get_dashboard_stats, get_reports, get_conn)
+                       get_dashboard_stats, get_reports, get_conn, _exec)
 
 
 def _export_csv(df: pd.DataFrame, label: str, filename: str):
@@ -94,7 +94,7 @@ def render_admin():
     # ── User Management ────────────────────────────────────────────────────────
     with tab_users:
         with get_conn() as conn:
-            users = [dict(r) for r in conn.execute(
+            users = [dict(r) for r in _exec(conn,
                 "SELECT id, username, role, created_at FROM users ORDER BY id"
             ).fetchall()]
         udf = pd.DataFrame(users)
@@ -150,7 +150,7 @@ def render_admin():
 
             with col2:
                 with get_conn() as conn:
-                    trend = [dict(r) for r in conn.execute("""
+                    trend = [dict(r) for r in _exec(conn, """
                         SELECT DATE(assessed_at) as day, COUNT(*) as count
                         FROM questionnaire_results
                         GROUP BY day ORDER BY day DESC LIMIT 14
@@ -174,17 +174,17 @@ def render_admin():
         st.markdown("#### Export All Data")
 
         with get_conn() as conn:
-            all_patients = pd.DataFrame([dict(r) for r in conn.execute(
+            all_patients = pd.DataFrame([dict(r) for r in _exec(conn,
                 "SELECT * FROM patients").fetchall()])
-            all_eeg      = pd.DataFrame([dict(r) for r in conn.execute(
+            all_eeg      = pd.DataFrame([dict(r) for r in _exec(conn,
                 "SELECT * FROM eeg_signals LIMIT 10000").fetchall()])
-            all_q        = pd.DataFrame([dict(r) for r in conn.execute(
+            all_q        = pd.DataFrame([dict(r) for r in _exec(conn,
                 "SELECT * FROM questionnaire_results").fetchall()])
-            all_emo      = pd.DataFrame([dict(r) for r in conn.execute(
+            all_emo      = pd.DataFrame([dict(r) for r in _exec(conn,
                 "SELECT * FROM emotion_logs").fetchall()])
-            all_act      = pd.DataFrame([dict(r) for r in conn.execute(
+            all_act      = pd.DataFrame([dict(r) for r in _exec(conn,
                 "SELECT * FROM activity_results").fetchall()])
-            all_reports  = pd.DataFrame([dict(r) for r in conn.execute(
+            all_reports  = pd.DataFrame([dict(r) for r in _exec(conn,
                 "SELECT * FROM assessment_reports").fetchall()])
 
         cols = st.columns(3)

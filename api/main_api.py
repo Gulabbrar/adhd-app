@@ -3,7 +3,7 @@ api/main_api.py — ADHD Platform FastAPI backend
 Complete REST API with auth, patient management, appointments & reviews.
 Run: uvicorn api.main_api:app --host 0.0.0.0 --port 8000
 """
-import os, sys, sqlite3
+import os, sys
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -403,7 +403,7 @@ def list_reviews(patient_id: Optional[int] = None):
 def get_latest_eeg():
     """Return the most recent EEG sample across all patients."""
     with db.get_conn() as conn:
-        row = conn.execute(
+        row = db._exec(conn,
             "SELECT * FROM eeg_signals ORDER BY recorded_at DESC LIMIT 1"
         ).fetchone()
 
@@ -439,8 +439,8 @@ def get_latest_eeg():
 @app.get("/eeg/patient/{patient_id}", tags=["EEG"])
 def get_patient_eeg(patient_id: int, limit: int = 100):
     with db.get_conn() as conn:
-        rows = conn.execute(
-            "SELECT * FROM eeg_signals WHERE patient_id=? ORDER BY recorded_at DESC LIMIT ?",
+        rows = db._exec(conn,
+            "SELECT * FROM eeg_signals WHERE patient_id=%s ORDER BY recorded_at DESC LIMIT %s",
             (patient_id, limit),
         ).fetchall()
     return {"patient_id": patient_id, "count": len(rows), "data": [dict(r) for r in rows]}
@@ -449,8 +449,8 @@ def get_patient_eeg(patient_id: int, limit: int = 100):
 @app.get("/eeg/session/{session_id}", tags=["EEG"])
 def get_session_eeg(session_id: str):
     with db.get_conn() as conn:
-        rows = conn.execute(
-            "SELECT * FROM eeg_signals WHERE session_id=? ORDER BY recorded_at ASC",
+        rows = db._exec(conn,
+            "SELECT * FROM eeg_signals WHERE session_id=%s ORDER BY recorded_at ASC",
             (session_id,),
         ).fetchall()
     if not rows:

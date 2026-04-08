@@ -3,7 +3,8 @@ import streamlit as st
 import pandas as pd
 import json
 from database import (get_patients, get_eeg_signals, get_questionnaires,
-                       get_emotion_logs, get_activity_results, get_all_eeg_sessions)
+                       get_emotion_logs, get_activity_results, get_all_eeg_sessions,
+                       get_conn, _exec)
 
 
 def _to_csv(df: pd.DataFrame) -> bytes:
@@ -32,10 +33,8 @@ def render_history():
         if pid:
             rows = get_eeg_signals(pid, limit=500)
         else:
-            # Load recent signals across all patients — join by patient_id, not name
-            from database import get_conn
             with get_conn() as conn:
-                raw = conn.execute("""
+                raw = _exec(conn, """
                     SELECT e.* FROM eeg_signals e
                     ORDER BY e.recorded_at DESC LIMIT 500
                 """).fetchall()
@@ -58,16 +57,15 @@ def render_history():
 
     # ── Questionnaire Data ────────────────────────────────────────────────────
     with tab_q:
-        from database import get_conn
         with get_conn() as conn:
             if pid:
-                rows = conn.execute("""
+                rows = _exec(conn, """
                     SELECT q.*, p.name as patient_name FROM questionnaire_results q
                     JOIN patients p ON q.patient_id=p.id
-                    WHERE q.patient_id=? ORDER BY q.assessed_at DESC
+                    WHERE q.patient_id=%s ORDER BY q.assessed_at DESC
                 """, (pid,)).fetchall()
             else:
-                rows = conn.execute("""
+                rows = _exec(conn, """
                     SELECT q.*, p.name as patient_name FROM questionnaire_results q
                     JOIN patients p ON q.patient_id=p.id
                     ORDER BY q.assessed_at DESC LIMIT 100
@@ -101,16 +99,15 @@ def render_history():
 
     # ── Emotion Logs ──────────────────────────────────────────────────────────
     with tab_emo:
-        from database import get_conn
         with get_conn() as conn:
             if pid:
-                rows = conn.execute("""
+                rows = _exec(conn, """
                     SELECT e.*, p.name as patient_name FROM emotion_logs e
                     JOIN patients p ON e.patient_id=p.id
-                    WHERE e.patient_id=? ORDER BY e.logged_at DESC
+                    WHERE e.patient_id=%s ORDER BY e.logged_at DESC
                 """, (pid,)).fetchall()
             else:
-                rows = conn.execute("""
+                rows = _exec(conn, """
                     SELECT e.*, p.name as patient_name FROM emotion_logs e
                     JOIN patients p ON e.patient_id=p.id
                     ORDER BY e.logged_at DESC LIMIT 200
@@ -131,16 +128,15 @@ def render_history():
 
     # ── Activity Results ──────────────────────────────────────────────────────
     with tab_act:
-        from database import get_conn
         with get_conn() as conn:
             if pid:
-                rows = conn.execute("""
+                rows = _exec(conn, """
                     SELECT a.*, p.name as patient_name FROM activity_results a
                     JOIN patients p ON a.patient_id=p.id
-                    WHERE a.patient_id=? ORDER BY a.completed_at DESC
+                    WHERE a.patient_id=%s ORDER BY a.completed_at DESC
                 """, (pid,)).fetchall()
             else:
-                rows = conn.execute("""
+                rows = _exec(conn, """
                     SELECT a.*, p.name as patient_name FROM activity_results a
                     JOIN patients p ON a.patient_id=p.id
                     ORDER BY a.completed_at DESC LIMIT 200
