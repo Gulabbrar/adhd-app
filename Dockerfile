@@ -19,8 +19,6 @@ RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.l
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-RUN mkdir -p /app/data
-
 EXPOSE 8501
 
 CMD ["streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
