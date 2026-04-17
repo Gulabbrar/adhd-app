@@ -147,8 +147,8 @@ def render_eeg():
     pid  = patient["id"]
     name = patient["name"]
 
-    tab_live, tab_manual, tab_history = st.tabs([
-        "Live Recording", "Manual Entry", "Session History"
+    tab_live, tab_manual, tab_history, tab_import = st.tabs([
+        "Live Recording", "Manual Entry", "Session History", "Bulk Import (Excel)"
     ])
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -402,3 +402,131 @@ def render_eeg():
         sel = st.selectbox("View session detail", list(labels.keys()),
                             key="hist_sess_sel")
         _show_session(pid, labels[sel], "hist")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # TAB 4 — Bulk Import from Excel
+    # ══════════════════════════════════════════════════════════════════════════
+    with tab_import:
+        st.markdown(f"""
+        <div class="card">
+            <b>Patient:</b> {name} &nbsp;|&nbsp;
+            <b>ID:</b> {patient.get('patient_uid') or '#'+str(pid)}<br>
+            <small style="color:#64748b;">
+                Upload an <b>.xlsx</b> file where each row is one EEG sample.
+                All rows are saved as a single new session prefixed <code>IMP_</code>.
+            </small>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── Template download ─────────────────────────────────────────────────
+        REQUIRED_COLS = [
+            "quality", "attention", "meditation",
+            "delta", "theta",
+            "low_alpha", "high_alpha",
+            "low_beta",  "high_beta",
+            "low_gamma", "mid_gamma",
+        ]
+        template_df = pd.DataFrame(columns=REQUIRED_COLS)
+        import io as _io
+        _buf = _io.BytesIO()
+        template_df.to_excel(_buf, index=False)
+        st.download_button(
+            label="Download Excel Template",
+            data=_buf.getvalue(),
+            file_name="eeg_import_template.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="dl_template",
+        )
+
+        st.markdown("---")
+
+        # ── File uploader ─────────────────────────────────────────────────────
+        uploaded = st.file_uploader(
+            "Choose Excel file (.xlsx / .xls)",
+            type=["xlsx", "xls"],
+            key="eeg_excel_upload",
+        )
+
+        if uploaded:
+            try:
+                df_import = pd.read_excel(uploaded)
+            except Exception as e:
+                st.error(f"Could not read file: {e}")
+                df_import = None
+
+            if df_import is not None:
+                missing_cols = [c for c in REQUIRED_COLS if c not in df_import.columns]
+                if missing_cols:
+                    st.error(f"Missing required column(s): {missing_cols}")
+                else:
+                    df_import = df_import[REQUIRED_COLS].copy()
+
+                    # ── Validation ─────────────────────────────────────────────
+                    errors = []
+                    for col in ["quality", "attention", "meditation"]:
+                        out = df_import[(df_import[col] < 0) | (df_import[col] > 100)]
+                        if not out.empty:
+                            errors.append(
+                                f"Column `{col}` has {len(out)} row(s) outside 0–100 "
+                                f"(rows: {list(out.index[:5])})"
+                            )
+                    for col in ["delta", "theta", "low_alpha", "high_alpha",
+                                "low_beta", "high_beta", "low_gamma", "mid_gamma"]:
+                        out = df_import[df_import[col] < 0]
+                        if not out.empty:
+                            errors.append(
+                                f"Column `{col}` has {len(out)} negative value(s)."
+                            )
+
+                    if errors:
+                        for e in errors:
+                            st.warning(e)
+                        st.error("Fix the issues above before importing.")
+                    else:
+                        st.success(
+                            f"{len(df_import)} valid row(s) ready to import. "
+                            "Preview (first 10):"
+                        )
+                        st.dataframe(
+                            df_import.head(10),
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+
+                        import_session_id = datetime.now().strftime("IMP_%Y%m%d_%H%M%S")
+                        st.caption(f"Will be saved as session: `{import_session_id}`")
+
+                        if st.button(
+                            f"Import {len(df_import)} Rows",
+                            use_container_width=True,
+                            key="do_import_btn",
+                        ):
+                            progress = st.progress(0, text="Importing…")
+                            total = len(df_import)
+                            for i, (_, row) in enumerate(df_import.iterrows()):
+                                data = {
+                                    "quality":    int(row["quality"]),
+                                    "attention":  int(row["attention"]),
+                                    "meditation": int(row["meditation"]),
+                                    "delta":      int(row["delta"]),
+                                    "theta":      int(row["theta"]),
+                                    "lowAlpha":   int(row["low_alpha"]),
+                                    "highAlpha":  int(row["high_alpha"]),
+                                    "lowBeta":    int(row["low_beta"]),
+                                    "highBeta":   int(row["high_beta"]),
+                                    "lowGamma":   int(row["low_gamma"]),
+                                    "midGamma":   int(row["mid_gamma"]),
+                                }
+                                save_eeg_signal(pid, import_session_id, data)
+                                progress.progress(
+                                    (i + 1) / total,
+                                    text=f"Saving row {i+1} of {total}…",
+                                )
+
+                            progress.empty()
+                            st.success(
+                                f"Successfully imported {total} readings "
+                                f"into session `{import_session_id}`."
+                            )
+                            st.session_state["review_dialog_done"] = False
+                            st.rerun()
